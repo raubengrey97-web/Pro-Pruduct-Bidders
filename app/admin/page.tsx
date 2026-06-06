@@ -7,17 +7,28 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<any[]>([])
 
+  const fetchTransactions = async () => {
+    const { data } = await supabase
+      .from('transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setTransactions(data || [])
+  }
+
+  const approveTx = async (id: string) => {
+    await supabase
+      .from('transactions')
+      .update({ status: 'confirmed' })
+      .eq('id', id)
+    fetchTransactions() // refresh table
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: userData } = await supabase.auth.getUser()
       setUser(userData.user)
-
       if (userData.user?.user_metadata?.role === 'admin') {
-        const { data } = await supabase
-          .from('transactions')
-          .select('*')
-          .order('created_at', { ascending: false })
-        setTransactions(data || [])
+        await fetchTransactions()
       }
       setLoading(false)
     }
@@ -47,6 +58,7 @@ export default function Admin() {
               <th>Amount</th>
               <th>Status</th>
               <th>Date</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -56,6 +68,13 @@ export default function Admin() {
                 <td>{tx.amount}</td>
                 <td>{tx.status}</td>
                 <td>{new Date(tx.created_at).toLocaleString()}</td>
+                <td>
+                  {tx.status === 'pending' ? (
+                    <button onClick={() => approveTx(tx.id)}>Approve</button>
+                  ) : (
+                    'Confirmed'
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -63,4 +82,4 @@ export default function Admin() {
       )}
     </div>
   )
-          }
+}
