@@ -24,6 +24,10 @@ export default function Admin() {
   return (
     <div>
       <h1>Admin Dashboard</h1>
+      
+      {/* Debug: shows your metadata */}
+      <pre>{JSON.stringify(user.user_metadata, null, 2)}</pre>
+      
       <p>Logged in as: {user.email}</p>
       <button onClick={() => supabase.auth.signOut()}>Logout</button>
       
