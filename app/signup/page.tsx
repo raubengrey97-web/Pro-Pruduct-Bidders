@@ -7,7 +7,14 @@ export default function Signup() {
   const [password, setPassword] = useState('')
 
   const handleSignup = async () => {
-    const { error } = await supabase.auth.signUp({ email, password })
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      alert("Unable to validate email address: invalid format")
+      return
+    }
+
+    const { error } = await supabase.auth.signUp({ email: email.trim(), password })
     if (error) alert(error.message)
     else alert('Check your email to confirm signup')
   }
@@ -20,4 +27,4 @@ export default function Signup() {
       <button onClick={handleSignup}>Sign Up</button>
     </div>
   )
-                                                                                                }
+}
