@@ -1,0 +1,21 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
+export default function Admin() {
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+  }, [])
+
+  if (!user) return <p>Please login first</p>
+
+  return (
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Logged in as: {user.email}</p>
+      <button onClick={() => supabase.auth.signOut()}>Logout</button>
+    </div>
+  )
+}
