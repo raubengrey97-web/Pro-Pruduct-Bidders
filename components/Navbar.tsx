@@ -2,9 +2,24 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
+import { useEffect, useState } from 'react'
 
 export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
   const router = useRouter()
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('read', false)
+      setUnread(count || 0)
+    }
+    fetchUnread()
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -24,7 +39,17 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         <Link href="/products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Auctions</Link>
         <Link href="/my-products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>My Products</Link>
         <Link href="/user" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Dashboard</Link>
-        <Link href="/profile" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Profile</Link>
+        {!isAdmin && (
+          <Link href="/profile" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Profile</Link>
+        )}
+        <Link href="/notifications" style={{ fontSize: '13px', color: '#555', textDecoration: 'none', position: 'relative' }}>
+          🔔 {unread > 0 && (
+            <span style={{
+              background: '#e53e3e', color: '#fff', fontSize: '10px',
+              padding: '1px 5px', borderRadius: '10px', marginLeft: '2px'
+            }}>{unread}</span>
+          )}
+        </Link>
         {isAdmin && (
           <>
             <Link href="/admin" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Admin</Link>
