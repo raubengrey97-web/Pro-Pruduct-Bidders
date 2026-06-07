@@ -15,34 +15,26 @@ export default function Admin() {
   const [earnings, setEarnings] = useState({ total: 0, pending: 0, thisMonth: 0 })
 
   const fetchAll = async () => {
-    // Fetch bids separately
-    const { data: bidsData, error: bidsError } = await supabase
+    const { data: bidsData } = await supabase
       .from('bids')
       .select('*, products(title, original_price)')
       .order('created_at', { ascending: false })
 
-    console.log('bids:', bidsData, 'error:', bidsError)
-
-    // Fetch profiles separately
     const { data: profilesData } = await supabase
       .from('profiles').select('*')
 
-    // Merge profiles into bids manually
     const mergedBids = (bidsData || []).map((bid: any) => ({
       ...bid,
       profiles: (profilesData || []).find((p: any) => p.id === bid.user_id) || null
     }))
 
     setBids(mergedBids)
-    setAllProducts([])
     setUsers(profilesData || [])
 
-    // Fetch products
     const { data: productsData } = await supabase
       .from('products').select('*').order('created_at', { ascending: false })
     setAllProducts(productsData || [])
 
-    // Calculate earnings
     const wonBids = mergedBids.filter((b: any) => b.status === 'won')
     const total = wonBids.reduce((sum: number, b: any) => sum + (b.amount * 0.10), 0)
     const pendingPayouts = wonBids
@@ -57,13 +49,16 @@ export default function Admin() {
   const approveBid = async (bid: any) => {
     const commissionAmount = bid.amount * 0.10
     const payoutAmount = bid.amount * 0.90
+
     await supabase.from('bids').update({ status: 'won', payout_amount: payoutAmount }).eq('id', bid.id)
+
     await supabase.from('products').update({
       owner_id: bid.user_id,
       status: 'sold',
       purchase_price: bid.amount,
       held_since: new Date().toISOString()
     }).eq('id', bid.product_id)
+
     await supabase.from('commissions').insert({
       bid_id: bid.id,
       product_id: bid.product_id,
@@ -73,12 +68,11 @@ export default function Admin() {
       user_payout: payoutAmount,
       type: 'purchase'
     })
-    
-    // Mark other bids as lost
-    const otherBids = await supabase.from('bids').update({ status: 'lost' })
+
+    await supabase.from('bids').update({ status: 'lost' })
       .eq('product_id', bid.product_id).neq('id', bid.id)
-    
-    // Notify the winning buyer
+
+    // Notify winning buyer
     await supabase.from('notifications').insert({
       user_id: bid.user_id,
       title: '🎉 Bid Approved!',
@@ -86,32 +80,13 @@ export default function Admin() {
       type: 'success'
     })
 
-    // Notify rejected bidders (other bids on same product)
-    const rejectedBidIds = (otherBids.data as any[])?.map((b: any) => b.id) || []
-    if (rejectedBidIds.length > 0) {
-      const { data: rejectedBids } = await supabase
-        .from('bids')
-        .select('user_id')
-        .in('id', rejectedBidIds)
-      
-      for (const rejectedBid of (rejectedBids || [])) {
-        await supabase.from('notifications').insert({
-          user_id: rejectedBid.user_id,
-          title: '😢 Bid Not Selected',
-          message: `Unfortunately, your bid on ${bid.products?.title} was not selected. Better luck on the next product!`,
-          type: 'info'
-        })
-      }
-    }
-
     fetchAll()
   }
 
-  const rejectBid = async (id: string, bid: any) => {
+  const rejectBid = async (id: string) => {
+    const rejectedBid = bids.find((b: any) => b.id === id)
     await supabase.from('bids').update({ status: 'lost' }).eq('id', id)
-    
-    // Notify the user their bid was rejected
-    const rejectedBid = bids.find(b => b.id === id)
+
     if (rejectedBid) {
       await supabase.from('notifications').insert({
         user_id: rejectedBid.user_id,
@@ -129,6 +104,14 @@ export default function Admin() {
       payout_sent: true,
       payout_sent_at: new Date().toISOString()
     }).eq('id', bid.id)
+
+    await supabase.from('notifications').insert({
+      user_id: bid.user_id,
+      title: '💸 Payout Sent!',
+      message: `Your payout of $${(bid.amount * 0.90).toFixed(2)} has been sent to your mobile money account.`,
+      type: 'payout'
+    })
+
     fetchAll()
   }
 
@@ -164,7 +147,6 @@ export default function Admin() {
         </h1>
         <p style={{ color: '#888', marginBottom: '24px', fontSize: '14px' }}>Logged in as: {user?.email}</p>
 
-        {/* Earnings Summary */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '32px' }}>
           {[
             { label: 'Total Earnings', value: `$${earnings.total.toFixed(2)}`, color: '#276749' },
@@ -178,10 +160,9 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           <button style={tabStyle('bids')} onClick={() => setActiveTab('bids')}>
-            Bids ({bids.filter(b => b.status === 'pending').length} pending)
+            Bids ({bids.filter((b: any) => b.status === 'pending').length} pending)
           </button>
           <button style={tabStyle('products')} onClick={() => setActiveTab('products')}>
             Products ({allProducts.length})
@@ -191,11 +172,10 @@ export default function Admin() {
           </button>
         </div>
 
-        {/* Bids Tab */}
         {activeTab === 'bids' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {bids.length === 0 && <p style={{ color: '#888' }}>No bids yet.</p>}
-            {bids.map(bid => {
+            {bids.map((bid: any) => {
               const commission = (bid.amount * 0.10).toFixed(2)
               const payout = (bid.amount * 0.90).toFixed(2)
               const seller = bid.profiles
@@ -208,24 +188,18 @@ export default function Admin() {
                         Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>${payout}</strong>
                       </p>
                       <p style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{new Date(bid.created_at).toLocaleString()}</p>
-
                       {bid.payment_ref && (
                         <p style={{ fontSize: '13px', marginTop: '8px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', color: '#92400e' }}>
                           💳 Payment Ref: <strong>{bid.payment_ref}</strong>
                         </p>
                       )}
-
                       {bid.status === 'won' && (
                         <div style={{ marginTop: '8px', background: bid.payout_sent ? '#f0fff4' : '#fff5f5', border: `1px solid ${bid.payout_sent ? '#9ae6b4' : '#feb2b2'}`, borderRadius: '8px', padding: '10px' }}>
                           {bid.payout_sent ? (
-                            <p style={{ fontSize: '12px', color: '#276749' }}>
-                              ✅ Payout sent on {new Date(bid.payout_sent_at).toLocaleDateString()}
-                            </p>
+                            <p style={{ fontSize: '12px', color: '#276749' }}>✅ Payout sent on {new Date(bid.payout_sent_at).toLocaleDateString()}</p>
                           ) : (
                             <>
-                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#c05621', marginBottom: '6px' }}>
-                                ⚠️ Send ${payout} to seller:
-                              </p>
+                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#c05621', marginBottom: '6px' }}>⚠️ Send ${payout} to seller:</p>
                               {seller?.phone_number ? (
                                 <div style={{ fontSize: '13px', color: '#444', lineHeight: 1.8 }}>
                                   <p>📱 <strong>{seller.phone_provider} Money:</strong> {seller.phone_number}</p>
@@ -233,16 +207,13 @@ export default function Admin() {
                                   <p>📧 <strong>Email:</strong> {seller.email}</p>
                                 </div>
                               ) : (
-                                <p style={{ fontSize: '12px', color: '#e53e3e' }}>
-                                  ⚠️ Seller has not added mobile money details. Email: {seller?.email}
-                                </p>
+                                <p style={{ fontSize: '12px', color: '#e53e3e' }}>⚠️ Seller has not added mobile money details. Email: {seller?.email}</p>
                               )}
                             </>
                           )}
                         </div>
                       )}
                     </div>
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
@@ -255,7 +226,7 @@ export default function Admin() {
                             style={{ background: '#111', color: '#fff', padding: '6px 14px', borderRadius: '6px', border: 'none', fontSize: '12px', cursor: 'pointer' }}>
                             ✅ Approve
                           </button>
-                          <button onClick={() => rejectBid(bid.id, bid)}
+                          <button onClick={() => rejectBid(bid.id)}
                             style={{ background: '#fff5f5', color: '#e53e3e', padding: '6px 14px', borderRadius: '6px', border: '1px solid #feb2b2', fontSize: '12px', cursor: 'pointer' }}>
                             ❌ Reject
                           </button>
@@ -275,12 +246,11 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Products Tab */}
         {activeTab === 'products' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {allProducts.length === 0 && <p style={{ color: '#888' }}>No products yet.</p>}
-            {allProducts.map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flex: 1 }}>
+            {allProducts.map((p: any) => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{p.title}</p>
                   <p style={{ fontSize: '13px', color: '#888' }}>Original: ${p.original_price} · Min bid: ${p.min_bid}</p>
@@ -295,20 +265,17 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Users Tab */}
         {activeTab === 'users' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {users.length === 0 && <p style={{ color: '#888' }}>No users yet.</p>}
-            {users.map(u => (
+            {users.map((u: any) => (
               <div key={u.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <p style={{ fontWeight: 500, color: '#111', marginBottom: '4px' }}>{u.email}</p>
                     <p style={{ fontSize: '12px', color: '#aaa', marginBottom: '4px' }}>Joined: {new Date(u.created_at).toLocaleDateString()}</p>
                     {u.phone_number ? (
-                      <p style={{ fontSize: '12px', color: '#555' }}>
-                        📱 {u.phone_provider}: {u.phone_number} — {u.phone_name}
-                      </p>
+                      <p style={{ fontSize: '12px', color: '#555' }}>📱 {u.phone_provider}: {u.phone_number} — {u.phone_name}</p>
                     ) : (
                       <p style={{ fontSize: '12px', color: '#e53e3e' }}>⚠️ No mobile money details</p>
                     )}
