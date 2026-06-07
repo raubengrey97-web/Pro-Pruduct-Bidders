@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar'
 export default function UserDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -14,9 +15,17 @@ export default function UserDashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
-      } else {
-        setUser(user)
+        return
       }
+      setUser(user)
+
+      // Check if admin from profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
+      setIsAdmin(profile?.is_admin || false)
       setLoading(false)
     }
     getUser()
@@ -26,7 +35,7 @@ export default function UserDashboard() {
 
   return (
     <>
-      <Navbar />
+      <Navbar isAdmin={isAdmin} />
       <main style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#111', marginBottom: '8px' }}>
           My Dashboard
@@ -45,6 +54,13 @@ export default function UserDashboard() {
             </div>
           ))}
         </div>
+
+        {isAdmin && (
+          <div style={{ marginTop: '32px', padding: '20px', background: '#fafafa', border: '1px solid #ececec', borderRadius: '10px' }}>
+            <p style={{ fontWeight: 600, color: '#111', marginBottom: '8px' }}>🛡️ Admin Access</p>
+            <p style={{ fontSize: '14px', color: '#888' }}>You have admin privileges. Use the navbar to manage products and view transactions.</p>
+          </div>
+        )}
       </main>
     </>
   )
