@@ -110,13 +110,16 @@ export default function Admin() {
   const rejectBid = async (id: string, bid: any) => {
     await supabase.from('bids').update({ status: 'lost' }).eq('id', id)
     
-    // Notify the rejected bidder
-    await supabase.from('notifications').insert({
-      user_id: bid.user_id,
-      title: '❌ Bid Rejected',
-      message: `Your bid of $${bid.amount} on ${bid.products?.title} was rejected by the admin.`,
-      type: 'error'
-    })
+    // Notify the user their bid was rejected
+    const rejectedBid = bids.find(b => b.id === id)
+    if (rejectedBid) {
+      await supabase.from('notifications').insert({
+        user_id: rejectedBid.user_id,
+        title: 'Bid Rejected',
+        message: `Your bid of $${rejectedBid.amount} on ${rejectedBid.products?.title} was rejected. Payment not verified.`,
+        type: 'error'
+      })
+    }
 
     fetchAll()
   }
@@ -277,7 +280,7 @@ export default function Admin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {allProducts.length === 0 && <p style={{ color: '#888' }}>No products yet.</p>}
             {allProducts.map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flex: 1 }}>
                 <div>
                   <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{p.title}</p>
                   <p style={{ fontSize: '13px', color: '#888' }}>Original: ${p.original_price} · Min bid: ${p.min_bid}</p>
