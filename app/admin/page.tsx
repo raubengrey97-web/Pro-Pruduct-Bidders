@@ -15,21 +15,35 @@ export default function Admin() {
   const [earnings, setEarnings] = useState({ total: 0, pending: 0, thisMonth: 0 })
 
   const fetchAll = async () => {
-    const { data: bidsData } = await supabase
+    // Fetch bids separately
+    const { data: bidsData, error: bidsError } = await supabase
       .from('bids')
-      .select('*, products(title, original_price), profiles!bids_user_id_fkey(email, phone_number, phone_provider, phone_name)')
+      .select('*, products(title, original_price)')
       .order('created_at', { ascending: false })
-    setBids(bidsData || [])
 
+    console.log('bids:', bidsData, 'error:', bidsError)
+
+    // Fetch profiles separately
+    const { data: profilesData } = await supabase
+      .from('profiles').select('*')
+
+    // Merge profiles into bids manually
+    const mergedBids = (bidsData || []).map((bid: any) => ({
+      ...bid,
+      profiles: (profilesData || []).find((p: any) => p.id === bid.user_id) || null
+    }))
+
+    setBids(mergedBids)
+    setAllProducts([])
+    setUsers(profilesData || [])
+
+    // Fetch products
     const { data: productsData } = await supabase
       .from('products').select('*').order('created_at', { ascending: false })
     setAllProducts(productsData || [])
 
-    const { data: profilesData } = await supabase
-      .from('profiles').select('*').order('created_at', { ascending: false })
-    setUsers(profilesData || [])
-
-    const wonBids = (bidsData || []).filter((b: any) => b.status === 'won')
+    // Calculate earnings
+    const wonBids = mergedBids.filter((b: any) => b.status === 'won')
     const total = wonBids.reduce((sum: number, b: any) => sum + (b.amount * 0.10), 0)
     const pendingPayouts = wonBids
       .filter((b: any) => !b.payout_sent)
@@ -148,7 +162,7 @@ export default function Admin() {
                 <div key={bid.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title}</p>
+                      <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title || 'Product'}</p>
                       <p style={{ fontSize: '13px', color: '#888' }}>
                         Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>${payout}</strong>
                       </p>
@@ -160,7 +174,6 @@ export default function Admin() {
                         </p>
                       )}
 
-                      {/* Seller payout details */}
                       {bid.status === 'won' && (
                         <div style={{ marginTop: '8px', background: bid.payout_sent ? '#f0fff4' : '#fff5f5', border: `1px solid ${bid.payout_sent ? '#9ae6b4' : '#feb2b2'}`, borderRadius: '8px', padding: '10px' }}>
                           {bid.payout_sent ? (
@@ -180,7 +193,7 @@ export default function Admin() {
                                 </div>
                               ) : (
                                 <p style={{ fontSize: '12px', color: '#e53e3e' }}>
-                                  ⚠️ Seller has not added mobile money details yet. Contact them at: {seller?.email}
+                                  ⚠️ Seller has not added mobile money details. Email: {seller?.email}
                                 </p>
                               )}
                             </>
@@ -230,7 +243,6 @@ export default function Admin() {
                 <div>
                   <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{p.title}</p>
                   <p style={{ fontSize: '13px', color: '#888' }}>Original: ${p.original_price} · Min bid: ${p.min_bid}</p>
-                  {p.owner_id && <p style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>Owned by: {p.owner_id}</p>}
                 </div>
                 <span style={{
                   padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
@@ -257,7 +269,7 @@ export default function Admin() {
                         📱 {u.phone_provider}: {u.phone_number} — {u.phone_name}
                       </p>
                     ) : (
-                      <p style={{ fontSize: '12px', color: '#e53e3e' }}>⚠️ No mobile money details added</p>
+                      <p style={{ fontSize: '12px', color: '#e53e3e' }}>⚠️ No mobile money details</p>
                     )}
                   </div>
                   <span style={{
@@ -273,4 +285,4 @@ export default function Admin() {
       </main>
     </>
   )
-    }
+      }
