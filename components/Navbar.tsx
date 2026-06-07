@@ -24,6 +24,7 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         <Link href="/products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Auctions</Link>
         <Link href="/my-products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>My Products</Link>
         <Link href="/user" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Dashboard</Link>
+        <Link href="/profile" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Profile</Link>
         {isAdmin && (
           <>
             <Link href="/admin" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Admin</Link>
