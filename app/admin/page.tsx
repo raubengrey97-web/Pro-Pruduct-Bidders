@@ -16,7 +16,8 @@ export default function Admin() {
 
   const fetchAll = async () => {
     const { data: bidsData } = await supabase
-      .from('bids').select('*, products(title, original_price)')
+      .from('bids')
+      .select('*, products(title, original_price), profiles!bids_user_id_fkey(email, phone_number, phone_provider, phone_name)')
       .order('created_at', { ascending: false })
     setBids(bidsData || [])
 
@@ -28,10 +29,10 @@ export default function Admin() {
       .from('profiles').select('*').order('created_at', { ascending: false })
     setUsers(profilesData || [])
 
-    // Calculate earnings
-    const wonBids = (bidsData || []).filter(b => b.status === 'won')
+    const wonBids = (bidsData || []).filter((b: any) => b.status === 'won')
     const total = wonBids.reduce((sum: number, b: any) => sum + (b.amount * 0.10), 0)
-    const pendingPayouts = wonBids.filter(b => !b.payout_sent && b.products?.owner_id)
+    const pendingPayouts = wonBids
+      .filter((b: any) => !b.payout_sent)
       .reduce((sum: number, b: any) => sum + (b.amount * 0.90), 0)
     const thisMonth = wonBids
       .filter((b: any) => new Date(b.created_at).getMonth() === new Date().getMonth())
@@ -93,7 +94,7 @@ export default function Admin() {
   if (loading) return <p style={{ padding: '40px', textAlign: 'center' }}>Loading...</p>
 
   const tabStyle = (tab: string) => ({
-    padding: '8px 20px', borderRadius: '6px', border: 'none', fontSize: '13px',
+    padding: '8px 16px', borderRadius: '6px', border: 'none', fontSize: '13px',
     fontWeight: 500, cursor: 'pointer',
     background: activeTab === tab ? '#111' : '#f5f5f5',
     color: activeTab === tab ? '#fff' : '#555'
@@ -125,7 +126,7 @@ export default function Admin() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           <button style={tabStyle('bids')} onClick={() => setActiveTab('bids')}>
-            Bids & Payments ({bids.filter(b => b.status === 'pending').length} pending)
+            Bids ({bids.filter(b => b.status === 'pending').length} pending)
           </button>
           <button style={tabStyle('products')} onClick={() => setActiveTab('products')}>
             Products ({allProducts.length})
@@ -142,26 +143,52 @@ export default function Admin() {
             {bids.map(bid => {
               const commission = (bid.amount * 0.10).toFixed(2)
               const payout = (bid.amount * 0.90).toFixed(2)
+              const seller = bid.profiles
               return (
                 <div key={bid.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title}</p>
-                      <p style={{ fontSize: '13px', color: '#888' }}>Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>${payout}</strong></p>
+                      <p style={{ fontSize: '13px', color: '#888' }}>
+                        Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>${payout}</strong>
+                      </p>
                       <p style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{new Date(bid.created_at).toLocaleString()}</p>
+
                       {bid.payment_ref && (
-                        <p style={{ fontSize: '13px', marginTop: '6px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', color: '#92400e' }}>
+                        <p style={{ fontSize: '13px', marginTop: '8px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', color: '#92400e' }}>
                           💳 Payment Ref: <strong>{bid.payment_ref}</strong>
                         </p>
                       )}
+
+                      {/* Seller payout details */}
                       {bid.status === 'won' && (
-                        <p style={{ fontSize: '12px', marginTop: '6px', color: bid.payout_sent ? '#276749' : '#c05621' }}>
-                          {bid.payout_sent
-                            ? `✅ Payout sent on ${new Date(bid.payout_sent_at).toLocaleDateString()}`
-                            : `⚠️ Payout of $${payout} pending — send to seller!`}
-                        </p>
+                        <div style={{ marginTop: '8px', background: bid.payout_sent ? '#f0fff4' : '#fff5f5', border: `1px solid ${bid.payout_sent ? '#9ae6b4' : '#feb2b2'}`, borderRadius: '8px', padding: '10px' }}>
+                          {bid.payout_sent ? (
+                            <p style={{ fontSize: '12px', color: '#276749' }}>
+                              ✅ Payout sent on {new Date(bid.payout_sent_at).toLocaleDateString()}
+                            </p>
+                          ) : (
+                            <>
+                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#c05621', marginBottom: '6px' }}>
+                                ⚠️ Send ${payout} to seller:
+                              </p>
+                              {seller?.phone_number ? (
+                                <div style={{ fontSize: '13px', color: '#444', lineHeight: 1.8 }}>
+                                  <p>📱 <strong>{seller.phone_provider} Money:</strong> {seller.phone_number}</p>
+                                  <p>👤 <strong>Name:</strong> {seller.phone_name}</p>
+                                  <p>📧 <strong>Email:</strong> {seller.email}</p>
+                                </div>
+                              ) : (
+                                <p style={{ fontSize: '12px', color: '#e53e3e' }}>
+                                  ⚠️ Seller has not added mobile money details yet. Contact them at: {seller?.email}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
@@ -203,7 +230,7 @@ export default function Admin() {
                 <div>
                   <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{p.title}</p>
                   <p style={{ fontSize: '13px', color: '#888' }}>Original: ${p.original_price} · Min bid: ${p.min_bid}</p>
-                  {p.owner_id && <p style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>Owner ID: {p.owner_id}</p>}
+                  {p.owner_id && <p style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>Owned by: {p.owner_id}</p>}
                 </div>
                 <span style={{
                   padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
@@ -220,16 +247,25 @@ export default function Admin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {users.length === 0 && <p style={{ color: '#888' }}>No users yet.</p>}
             {users.map(u => (
-              <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                <div>
-                  <p style={{ fontWeight: 500, color: '#111', marginBottom: '4px' }}>{u.email}</p>
-                  <p style={{ fontSize: '12px', color: '#aaa' }}>Joined: {new Date(u.created_at).toLocaleDateString()}</p>
+              <div key={u.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <p style={{ fontWeight: 500, color: '#111', marginBottom: '4px' }}>{u.email}</p>
+                    <p style={{ fontSize: '12px', color: '#aaa', marginBottom: '4px' }}>Joined: {new Date(u.created_at).toLocaleDateString()}</p>
+                    {u.phone_number ? (
+                      <p style={{ fontSize: '12px', color: '#555' }}>
+                        📱 {u.phone_provider}: {u.phone_number} — {u.phone_name}
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: '12px', color: '#e53e3e' }}>⚠️ No mobile money details added</p>
+                    )}
+                  </div>
+                  <span style={{
+                    padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
+                    background: u.is_admin ? '#fefcbf' : '#f5f5f5',
+                    color: u.is_admin ? '#744210' : '#555'
+                  }}>{u.is_admin ? '🛡️ Admin' : 'User'}</span>
                 </div>
-                <span style={{
-                  padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
-                  background: u.is_admin ? '#fefcbf' : '#f5f5f5',
-                  color: u.is_admin ? '#744210' : '#555'
-                }}>{u.is_admin ? '🛡️ Admin' : 'User'}</span>
               </div>
             ))}
           </div>
@@ -237,4 +273,4 @@ export default function Admin() {
       </main>
     </>
   )
-      }
+    }
