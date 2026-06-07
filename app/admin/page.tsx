@@ -8,103 +8,91 @@ export default function Admin() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [transactions, setTransactions] = useState<any[]>([])
+  const [bids, setBids] = useState<any[]>([])
 
-  const fetchTransactions = async () => {
+  const fetchBids = async () => {
     const { data } = await supabase
-      .from('transactions')
-      .select('*')
+      .from('bids')
+      .select('*, products(title)')
       .order('created_at', { ascending: false })
-    setTransactions(data || [])
+    setBids(data || [])
   }
 
-  const approveTx = async (id: string) => {
-    await supabase
-      .from('transactions')
-      .update({ status: 'confirmed' })
-      .eq('id', id)
-    fetchTransactions()
+  const updateBidStatus = async (id: string, status: string) => {
+    await supabase.from('bids').update({ status }).eq('id', id)
+    fetchBids()
   }
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: userData } = await supabase.auth.getUser()
-      setUser(userData.user)
-      if (userData.user?.user_metadata?.role === 'admin') {
-        await fetchTransactions()
-      }
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      const { data: profile } = await supabase
+        .from('profiles').select('is_admin').eq('id', user.id).single()
+      if (!profile?.is_admin) { router.push('/user'); return }
+      setUser(user)
+      await fetchBids()
       setLoading(false)
     }
     fetchData()
   }, [])
 
   if (loading) return <p style={{ padding: '40px', textAlign: 'center' }}>Loading...</p>
-  if (!user) {
-    router.push('/login')
-    return null
-  }
-  if (user.user_metadata?.role !== 'admin') {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p>Access denied. You don't have admin permissions.</p>
-      </div>
-    )
-  }
 
   return (
     <>
       <Navbar isAdmin={true} />
-      <main style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#111', marginBottom: '8px' }}>
+      <main style={{ padding: '24px 16px', maxWidth: '1000px', margin: '0 auto' }}>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#111', marginBottom: '4px' }}>
           Admin Dashboard
         </h1>
-        <p style={{ color: '#888', marginBottom: '32px' }}>Logged in as: {user.email}</p>
+        <p style={{ color: '#888', marginBottom: '32px', fontSize: '14px' }}>Logged in as: {user?.email}</p>
 
-        <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111', marginBottom: '16px' }}>Transactions</h2>
-        {transactions.length === 0 ? (
-          <p style={{ color: '#888' }}>No transactions yet</p>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111', marginBottom: '16px' }}>
+          Bids & Payments ({bids.length})
+        </h2>
+
+        {bids.length === 0 ? (
+          <p style={{ color: '#888' }}>No bids yet.</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-            <thead>
-              <tr style={{ background: '#fafafa', borderBottom: '2px solid #ececec' }}>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#555' }}>TX Code</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#555' }}>Amount</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#555' }}>Status</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#555' }}>Date</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#555' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx.id} style={{ borderBottom: '1px solid #ececec' }}>
-                  <td style={{ padding: '12px' }}>{tx.tx_code}</td>
-                  <td style={{ padding: '12px' }}>{tx.amount}</td>
-                  <td style={{ padding: '12px' }}>
-                    <span style={{
-                      background: tx.status === 'confirmed' ? '#f0fff4' : '#fffbeb',
-                      color: tx.status === 'confirmed' ? '#276749' : '#b7791f',
-                      padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500
-                    }}>
-                      {tx.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px', color: '#888' }}>{new Date(tx.created_at).toLocaleString()}</td>
-                  <td style={{ padding: '12px' }}>
-                    {tx.status === 'pending' ? (
-                      <button onClick={() => approveTx(tx.id)} style={{
-                        background: '#111', color: '#fff', border: 'none',
-                        padding: '6px 14px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer'
-                      }}>
-                        Approve
-                      </button>
-                    ) : (
-                      <span style={{ color: '#888', fontSize: '13px' }}>✓ Confirmed</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {bids.map(bid => (
+              <div key={bid.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title || 'Unknown Product'}</p>
+                    <p style={{ fontSize: '13px', color: '#888' }}>Bid Amount: <strong>${bid.amount}</strong></p>
+                    <p style={{ fontSize: '13px', color: '#888' }}>User: {bid.user_id}</p>
+                    <p style={{ fontSize: '13px', color: '#888' }}>Date: {new Date(bid.created_at).toLocaleString()}</p>
+                    {bid.payment_ref && (
+                      <p style={{ fontSize: '13px', marginTop: '6px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', color: '#92400e' }}>
+                        💳 Payment Ref: <strong>{bid.payment_ref}</strong>
+                      </p>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                    <span style={{
+                      padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
+                      background: bid.status === 'won' ? '#f0fff4' : bid.status === 'lost' ? '#fff5f5' : '#fffbeb',
+                      color: bid.status === 'won' ? '#276749' : bid.status === 'lost' ? '#e53e3e' : '#b7791f'
+                    }}>{bid.status}</span>
+                    {bid.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => updateBidStatus(bid.id, 'won')}
+                          style={{ background: '#111', color: '#fff', padding: '6px 14px', borderRadius: '6px', border: 'none', fontSize: '12px', cursor: 'pointer' }}>
+                          ✅ Approve
+                        </button>
+                        <button onClick={() => updateBidStatus(bid.id, 'lost')}
+                          style={{ background: '#fff5f5', color: '#e53e3e', padding: '6px 14px', borderRadius: '6px', border: '1px solid #feb2b2', fontSize: '12px', cursor: 'pointer' }}>
+                          ❌ Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </>
