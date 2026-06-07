@@ -87,7 +87,7 @@ export default function Admin() {
     })
 
     // Notify rejected bidders (other bids on same product)
-    const rejectedBidIds = otherBids.data?.map((b: any) => b.id) || []
+    const rejectedBidIds = (otherBids.data as any[])?.map((b: any) => b.id) || []
     if (rejectedBidIds.length > 0) {
       const { data: rejectedBids } = await supabase
         .from('bids')
