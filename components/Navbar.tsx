@@ -14,22 +14,24 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
   return (
     <nav style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '16px 32px', borderBottom: '1px solid #f0f0f0', background: '#fff'
+      padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: '#fff',
+      flexWrap: 'wrap', gap: '8px'
     }}>
-      <Link href="/" style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 700, color: '#111', textDecoration: 'none' }}>
+      <Link href="/" style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: 700, color: '#111', textDecoration: 'none', whiteSpace: 'nowrap' }}>
         Pro Product Bidders
       </Link>
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <Link href="/products" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Products</Link>
-        <Link href="/user" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Dashboard</Link>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Link href="/products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Auctions</Link>
+        <Link href="/my-products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>My Products</Link>
+        <Link href="/user" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Dashboard</Link>
         {isAdmin && (
           <>
-            <Link href="/admin" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Admin</Link>
-            <Link href="/admin/products" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Manage Products</Link>
+            <Link href="/admin" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Admin</Link>
+            <Link href="/admin/products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Manage</Link>
           </>
         )}
         <button onClick={handleLogout}
-          style={{ background: '#111', color: '#fff', padding: '8px 18px', borderRadius: '6px', border: 'none', fontSize: '13px', cursor: 'pointer' }}>
+          style={{ background: '#111', color: '#fff', padding: '7px 14px', borderRadius: '6px', border: 'none', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           Logout
         </button>
       </div>
