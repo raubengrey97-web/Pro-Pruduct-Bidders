@@ -61,6 +61,29 @@ export default function Products() {
     if (error) {
       setMessages({ ...messages, [product.id]: 'Error: ' + error.message })
     } else {
+      // After successful bid insert, send notification to admin
+      const { data: adminProfiles } = await supabase
+        .from('profiles').select('id').eq('is_admin', true)
+
+      if (adminProfiles) {
+        for (const admin of adminProfiles) {
+          await supabase.from('notifications').insert({
+            user_id: admin.id,
+            title: 'New Bid Submitted',
+            message: `A bid of $${amount} was placed on ${product.title} with payment ref: ${refCode}`,
+            type: 'payment'
+          })
+        }
+      }
+
+      // Also notify the user
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        title: 'Bid Submitted Successfully',
+        message: `Your bid of $${amount} on ${product.title} is pending admin verification.`,
+        type: 'info'
+      })
+
       setMessages({ ...messages, [product.id]: '✅ Bid submitted! Admin will verify your payment and confirm.' })
       setShowPayment({ ...showPayment, [product.id]: false })
       setBidAmounts({ ...bidAmounts, [product.id]: '' })
@@ -181,4 +204,4 @@ export default function Products() {
       </main>
     </>
   )
-                       }
+}
