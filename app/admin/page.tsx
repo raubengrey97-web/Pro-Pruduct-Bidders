@@ -8,71 +8,96 @@ export default function Admin() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'bids' | 'products' | 'users'>('bids')
   const [bids, setBids] = useState<any[]>([])
+  const [allProducts, setAllProducts] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [earnings, setEarnings] = useState({ total: 0, pending: 0, thisMonth: 0 })
 
-  const fetchBids = async () => {
-    const { data } = await supabase
-      .from('bids')
-      .select('*, products(title, original_price)')
+  const fetchAll = async () => {
+    const { data: bidsData } = await supabase
+      .from('bids').select('*, products(title, original_price)')
       .order('created_at', { ascending: false })
-    setBids(data || [])
+    setBids(bidsData || [])
+
+    const { data: productsData } = await supabase
+      .from('products').select('*').order('created_at', { ascending: false })
+    setAllProducts(productsData || [])
+
+    const { data: profilesData } = await supabase
+      .from('profiles').select('*').order('created_at', { ascending: false })
+    setUsers(profilesData || [])
+
+    // Calculate earnings
+    const wonBids = (bidsData || []).filter(b => b.status === 'won')
+    const total = wonBids.reduce((sum: number, b: any) => sum + (b.amount * 0.10), 0)
+    const pendingPayouts = wonBids.filter(b => !b.payout_sent && b.products?.owner_id)
+      .reduce((sum: number, b: any) => sum + (b.amount * 0.90), 0)
+    const thisMonth = wonBids
+      .filter((b: any) => new Date(b.created_at).getMonth() === new Date().getMonth())
+      .reduce((sum: number, b: any) => sum + (b.amount * 0.10), 0)
+    setEarnings({ total, pending: pendingPayouts, thisMonth })
   }
 
   const approveBid = async (bid: any) => {
-    const saleAmount = bid.amount
-    const commissionAmount = saleAmount * 0.10
-    const userPayout = saleAmount - commissionAmount
-
-    // 1. Update bid status to won
-    await supabase.from('bids').update({ status: 'won' }).eq('id', bid.id)
-
-    // 2. Transfer product ownership to buyer
+    const commissionAmount = bid.amount * 0.10
+    const payoutAmount = bid.amount * 0.90
+    await supabase.from('bids').update({ status: 'won', payout_amount: payoutAmount }).eq('id', bid.id)
     await supabase.from('products').update({
       owner_id: bid.user_id,
       status: 'sold',
-      purchase_price: saleAmount
+      purchase_price: bid.amount,
+      held_since: new Date().toISOString()
     }).eq('id', bid.product_id)
-
-    // 3. Record commission
     await supabase.from('commissions').insert({
       bid_id: bid.id,
       product_id: bid.product_id,
       user_id: bid.user_id,
-      sale_amount: saleAmount,
+      sale_amount: bid.amount,
       commission_amount: commissionAmount,
-      user_payout: userPayout,
+      user_payout: payoutAmount,
       type: 'purchase'
     })
-
-    // 4. Reject all other bids for same product
-    await supabase.from('bids')
-      .update({ status: 'lost' })
-      .eq('product_id', bid.product_id)
-      .neq('id', bid.id)
-
-    fetchBids()
+    await supabase.from('bids').update({ status: 'lost' })
+      .eq('product_id', bid.product_id).neq('id', bid.id)
+    fetchAll()
   }
 
   const rejectBid = async (id: string) => {
     await supabase.from('bids').update({ status: 'lost' }).eq('id', id)
-    fetchBids()
+    fetchAll()
+  }
+
+  const markPayoutSent = async (bid: any) => {
+    await supabase.from('bids').update({
+      payout_sent: true,
+      payout_sent_at: new Date().toISOString()
+    }).eq('id', bid.id)
+    fetchAll()
   }
 
   useEffect(() => {
-    const fetchData = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: profile } = await supabase
         .from('profiles').select('is_admin').eq('id', user.id).single()
       if (!profile?.is_admin) { router.push('/user'); return }
       setUser(user)
-      await fetchBids()
+      await fetchAll()
       setLoading(false)
     }
-    fetchData()
+    init()
   }, [])
 
   if (loading) return <p style={{ padding: '40px', textAlign: 'center' }}>Loading...</p>
+
+  const tabStyle = (tab: string) => ({
+    padding: '8px 20px', borderRadius: '6px', border: 'none', fontSize: '13px',
+    fontWeight: 500, cursor: 'pointer',
+    background: activeTab === tab ? '#111' : '#f5f5f5',
+    color: activeTab === tab ? '#fff' : '#555'
+  })
 
   return (
     <>
@@ -81,30 +106,59 @@ export default function Admin() {
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#111', marginBottom: '4px' }}>
           Admin Dashboard
         </h1>
-        <p style={{ color: '#888', marginBottom: '32px', fontSize: '14px' }}>Logged in as: {user?.email}</p>
+        <p style={{ color: '#888', marginBottom: '24px', fontSize: '14px' }}>Logged in as: {user?.email}</p>
 
-        <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111', marginBottom: '16px' }}>
-          Bids & Payments ({bids.length})
-        </h2>
+        {/* Earnings Summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '32px' }}>
+          {[
+            { label: 'Total Earnings', value: `$${earnings.total.toFixed(2)}`, color: '#276749' },
+            { label: 'This Month', value: `$${earnings.thisMonth.toFixed(2)}`, color: '#2b6cb0' },
+            { label: 'Pending Payouts', value: `$${earnings.pending.toFixed(2)}`, color: '#c05621' },
+          ].map(card => (
+            <div key={card.label} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+              <p style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>{card.label}</p>
+              <p style={{ fontSize: '20px', fontWeight: 700, color: card.color }}>{card.value}</p>
+            </div>
+          ))}
+        </div>
 
-        {bids.length === 0 ? (
-          <p style={{ color: '#888' }}>No bids yet.</p>
-        ) : (
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <button style={tabStyle('bids')} onClick={() => setActiveTab('bids')}>
+            Bids & Payments ({bids.filter(b => b.status === 'pending').length} pending)
+          </button>
+          <button style={tabStyle('products')} onClick={() => setActiveTab('products')}>
+            Products ({allProducts.length})
+          </button>
+          <button style={tabStyle('users')} onClick={() => setActiveTab('users')}>
+            Users ({users.length})
+          </button>
+        </div>
+
+        {/* Bids Tab */}
+        {activeTab === 'bids' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {bids.length === 0 && <p style={{ color: '#888' }}>No bids yet.</p>}
             {bids.map(bid => {
               const commission = (bid.amount * 0.10).toFixed(2)
               const payout = (bid.amount * 0.90).toFixed(2)
               return (
                 <div key={bid.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title || 'Unknown Product'}</p>
-                      <p style={{ fontSize: '13px', color: '#888' }}>Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · User gets: <strong>${payout}</strong></p>
-                      <p style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>User ID: {bid.user_id}</p>
-                      <p style={{ fontSize: '12px', color: '#aaa' }}>{new Date(bid.created_at).toLocaleString()}</p>
+                      <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title}</p>
+                      <p style={{ fontSize: '13px', color: '#888' }}>Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>${payout}</strong></p>
+                      <p style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{new Date(bid.created_at).toLocaleString()}</p>
                       {bid.payment_ref && (
-                        <p style={{ fontSize: '13px', marginTop: '8px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', color: '#92400e' }}>
+                        <p style={{ fontSize: '13px', marginTop: '6px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', color: '#92400e' }}>
                           💳 Payment Ref: <strong>{bid.payment_ref}</strong>
+                        </p>
+                      )}
+                      {bid.status === 'won' && (
+                        <p style={{ fontSize: '12px', marginTop: '6px', color: bid.payout_sent ? '#276749' : '#c05621' }}>
+                          {bid.payout_sent
+                            ? `✅ Payout sent on ${new Date(bid.payout_sent_at).toLocaleDateString()}`
+                            : `⚠️ Payout of $${payout} pending — send to seller!`}
                         </p>
                       )}
                     </div>
@@ -126,6 +180,12 @@ export default function Admin() {
                           </button>
                         </div>
                       )}
+                      {bid.status === 'won' && !bid.payout_sent && (
+                        <button onClick={() => markPayoutSent(bid)}
+                          style={{ background: '#f0fff4', color: '#276749', padding: '6px 14px', borderRadius: '6px', border: '1px solid #9ae6b4', fontSize: '12px', cursor: 'pointer' }}>
+                          💸 Mark Payout Sent
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -133,7 +193,48 @@ export default function Admin() {
             })}
           </div>
         )}
+
+        {/* Products Tab */}
+        {activeTab === 'products' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {allProducts.length === 0 && <p style={{ color: '#888' }}>No products yet.</p>}
+            {allProducts.map(p => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{p.title}</p>
+                  <p style={{ fontSize: '13px', color: '#888' }}>Original: ${p.original_price} · Min bid: ${p.min_bid}</p>
+                  {p.owner_id && <p style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>Owner ID: {p.owner_id}</p>}
+                </div>
+                <span style={{
+                  padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
+                  background: p.status === 'active' ? '#f0fff4' : p.status === 'sold' ? '#ebf8ff' : '#fff5f5',
+                  color: p.status === 'active' ? '#276749' : p.status === 'sold' ? '#2b6cb0' : '#e53e3e'
+                }}>{p.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {users.length === 0 && <p style={{ color: '#888' }}>No users yet.</p>}
+            {users.map(u => (
+              <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <p style={{ fontWeight: 500, color: '#111', marginBottom: '4px' }}>{u.email}</p>
+                  <p style={{ fontSize: '12px', color: '#aaa' }}>Joined: {new Date(u.created_at).toLocaleDateString()}</p>
+                </div>
+                <span style={{
+                  padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
+                  background: u.is_admin ? '#fefcbf' : '#f5f5f5',
+                  color: u.is_admin ? '#744210' : '#555'
+                }}>{u.is_admin ? '🛡️ Admin' : 'User'}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </>
   )
-}
+      }
