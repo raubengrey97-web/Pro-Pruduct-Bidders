@@ -20,8 +20,14 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         Pro Product Bidders
       </Link>
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+        <Link href="/products" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Products</Link>
         <Link href="/user" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Dashboard</Link>
-        {isAdmin && <Link href="/admin" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Admin</Link>}
+        {isAdmin && (
+          <>
+            <Link href="/admin" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Admin</Link>
+            <Link href="/admin/products" style={{ fontSize: '14px', color: '#555', textDecoration: 'none' }}>Manage Products</Link>
+          </>
+        )}
         <button onClick={handleLogout}
           style={{ background: '#111', color: '#fff', padding: '8px 18px', borderRadius: '6px', border: 'none', fontSize: '13px', cursor: 'pointer' }}>
           Logout
@@ -29,4 +35,4 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
       </div>
     </nav>
   )
-      }
+}
