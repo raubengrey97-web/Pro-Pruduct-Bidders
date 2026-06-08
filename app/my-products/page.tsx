@@ -47,7 +47,7 @@ export default function MyProducts() {
     const payout = price - commission
     await supabase.from('products').update({
       resale_price: price,
-      status: 'active',
+      status: 'resale',
       min_bid: price
     }).eq('id', product.id)
     setMessages({ ...messages, [product.id]: `✅ Listed for $${price}! After 10% commission you'll receive $${payout.toFixed(2)}` })
