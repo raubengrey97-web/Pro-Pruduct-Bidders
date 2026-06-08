@@ -52,7 +52,7 @@ export default function UserDashboard() {
 
     await supabase.from('products').update({
       resale_price: price,
-      status: 'active',
+      status: 'resale',
       min_bid: price
     }).eq('id', product.id)
 
@@ -151,7 +151,7 @@ export default function UserDashboard() {
             <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111', marginBottom: '16px' }}>📋 My Bids</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {bids.map(bid => (
-                <div key={bid.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa', border: '1px solid #ececec', borderRadius: '8px', padding: '12px 16px' }}>
+                <div key={bid.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa', border: '1px solid #ececec', borderRadius: '8px', padding: '12px' }}>
                   <div>
                     <p style={{ fontWeight: 500, fontSize: '14px', color: '#111' }}>{bid.products?.title || 'Product'}</p>
                     <p style={{ fontSize: '12px', color: '#888' }}>${bid.amount} · {new Date(bid.created_at).toLocaleDateString()}</p>
@@ -185,4 +185,4 @@ export default function UserDashboard() {
       </main>
     </>
   )
-                         }
+}
