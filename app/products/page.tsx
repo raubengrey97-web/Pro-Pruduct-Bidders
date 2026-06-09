@@ -11,7 +11,8 @@ export default function Products() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [bidAmounts, setBidAmounts] = useState<{ [key: string]: string }>({})
-  const [refCodes, setRefCodes] = useState<{ [key: string]: string }>({})
+  const [senderNumbers, setSenderNumbers] = useState<{ [key: string]: string }>({})
+  const [sentAts, setSentAts] = useState<{ [key: string]: string }>({})
   const [messages, setMessages] = useState<{ [key: string]: string }>({})
   const [showPayment, setShowPayment] = useState<{ [key: string]: boolean }>({})
 
@@ -46,17 +47,25 @@ export default function Products() {
 
   const submitPaymentRef = async (product: any) => {
     const amount = parseFloat(bidAmounts[product.id] || '0')
-    const refCode = refCodes[product.id]?.trim()
-    if (!refCode) {
-      setMessages({ ...messages, [product.id]: 'Please enter your payment reference code.' })
+    const senderNumber = senderNumbers[product.id]?.trim()
+    const sentAt = sentAts[product.id]?.trim()
+    
+    if (!senderNumber) {
+      setMessages({ ...messages, [product.id]: 'Please enter your phone number.' })
       return
     }
+    if (!sentAt) {
+      setMessages({ ...messages, [product.id]: 'Please enter the time sent.' })
+      return
+    }
+    
     const { error } = await supabase.from('bids').insert({
       product_id: product.id,
       user_id: user.id,
       amount,
-      status: 'pending',
-      payment_ref: refCode
+      sender_number: senderNumber,
+      sent_at: sentAt,
+      status: 'pending'
     })
     if (error) {
       setMessages({ ...messages, [product.id]: 'Error: ' + error.message })
@@ -70,7 +79,7 @@ export default function Products() {
           await supabase.from('notifications').insert({
             user_id: admin.id,
             title: 'New Bid Submitted',
-            message: `A bid of $${amount} was placed on ${product.title} with payment ref: ${refCode}`,
+            message: `A bid of $${amount} was placed on ${product.title}. Phone: ${senderNumber}, Time: ${sentAt}`,
             type: 'payment'
           })
         }
@@ -87,7 +96,8 @@ export default function Products() {
       setMessages({ ...messages, [product.id]: '✅ Bid submitted! Admin will verify your payment and confirm.' })
       setShowPayment({ ...showPayment, [product.id]: false })
       setBidAmounts({ ...bidAmounts, [product.id]: '' })
-      setRefCodes({ ...refCodes, [product.id]: '' })
+      setSenderNumbers({ ...senderNumbers, [product.id]: '' })
+      setSentAts({ ...sentAts, [product.id]: '' })
     }
   }
 
@@ -177,13 +187,22 @@ export default function Products() {
                         📌 10% commission will be deducted when you resell this product.
                       </p>
                       <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
-                        After paying, enter your transaction reference code:
+                        After paying, enter the phone number you sent from and the time:
                       </p>
                       <input
+                        type="tel"
+                        placeholder="Phone number you sent from: 0701234567"
+                        value={senderNumbers[p.id] || ''}
+                        onChange={e => setSenderNumbers({ ...senderNumbers, [p.id]: e.target.value })}
+                        required
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', marginBottom: '8px' }}
+                      />
+                      <input
                         type="text"
-                        placeholder="e.g. AIR1234567 or MTN9876543"
-                        value={refCodes[p.id] || ''}
-                        onChange={e => setRefCodes({ ...refCodes, [p.id]: e.target.value })}
+                        placeholder="Time sent: e.g. 2:30 PM"
+                        value={sentAts[p.id] || ''}
+                        onChange={e => setSentAts({ ...sentAts, [p.id]: e.target.value })}
+                        required
                         style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', marginBottom: '8px' }}
                       />
                       <button onClick={() => submitPaymentRef(p)}
