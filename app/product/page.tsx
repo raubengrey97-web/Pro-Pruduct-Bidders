@@ -15,6 +15,20 @@ export default function Products() {
   const [messages, setMessages] = useState<{ [key: string]: string }>({})
   const [showPayment, setShowPayment] = useState<{ [key: string]: boolean }>({})
 
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .or('status.eq.auction,status.eq.resale') // only show auction + resale items
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching products:', error)
+      return
+    }
+    setProducts(data || [])
+  }
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -23,11 +37,7 @@ export default function Products() {
       const { data: profile } = await supabase
         .from('profiles').select('is_admin').eq('id', user.id).single()
       setIsAdmin(profile?.is_admin || false)
-      const { data } = await supabase
-        .from('products').select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-      setProducts(data || [])
+      await fetchProducts()
       setLoading(false)
     }
     init()
@@ -164,4 +174,4 @@ export default function Products() {
       </main>
     </>
   )
-                                               }
+}
