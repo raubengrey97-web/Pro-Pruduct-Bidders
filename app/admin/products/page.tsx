@@ -66,9 +66,16 @@ export default function AdminProducts() {
     await fetchProducts()
   }
 
-  const toggleStatus = async (id: string, current: string) => {
+  const activateProduct = async (id: string) => {
     await supabase.from('products')
-      .update({ status: current === 'active' ? 'expired' : 'active' })
+      .update({ status: 'auction' })
+      .eq('id', id)
+    await fetchProducts()
+  }
+
+  const deactivateProduct = async (id: string) => {
+    await supabase.from('products')
+      .update({ status: 'active' })
       .eq('id', id)
     await fetchProducts()
   }
@@ -157,10 +164,31 @@ export default function AdminProducts() {
                   background: p.status === 'active' ? '#f0fff4' : '#fff5f5',
                   color: p.status === 'active' ? '#276749' : '#e53e3e'
                 }}>{p.status}</span>
-                <button onClick={() => toggleStatus(p.id, p.status)}
-                  style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', fontSize: '12px', cursor: 'pointer' }}>
-                  {p.status === 'active' ? 'Deactivate' : 'Activate'}
-                </button>
+                
+                {p.status === 'auction' && !p.owner_id && (
+                  <button
+                    onClick={() => deactivateProduct(p.id)}
+                    style={{ padding: '6px 12px', background: '#fee', color: '#c53030', border: '1px solid #fcc', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    Deactivate
+                  </button>
+                )}
+
+                {p.status !== 'auction' && !p.owner_id && (
+                  <button
+                    onClick={() => activateProduct(p.id)}
+                    style={{ padding: '6px 12px', background: '#f0fff4', color: '#276749', border: '1px solid #c6f6d5', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    Activate
+                  </button>
+                )}
+
+                {p.owner_id && (
+                  <span style={{ fontSize: '12px', color: '#888' }}>
+                    Owned by user
+                  </span>
+                )}
+
                 <button onClick={() => deleteProduct(p.id)}
                   style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#fff5f5', color: '#e53e3e', fontSize: '12px', cursor: 'pointer' }}>
                   Delete
@@ -172,4 +200,4 @@ export default function AdminProducts() {
       </main>
     </>
   )
-      }
+       }
