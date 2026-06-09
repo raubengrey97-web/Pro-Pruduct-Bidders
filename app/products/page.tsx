@@ -25,8 +25,10 @@ export default function Products() {
         .from('profiles').select('is_admin').eq('id', user.id).single()
       setIsAdmin(profile?.is_admin || false)
       const { data } = await supabase
-        .from('products').select('*')
-        .eq('status', 'active')
+        .from('products')
+        .select('*')
+        .or('status.eq.auction,status.eq.resale')
+        .is('owner_id', null)
         .order('created_at', { ascending: false })
       setProducts(data || [])
       setLoading(false)
