@@ -4,6 +4,16 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import Navbar from '@/components/Navbar'
 
+interface Bid {
+  id: string
+  amount: number
+  sender_number: string
+  sent_at: string
+  status: string
+  products?: { title: string }
+  profiles?: { email: string; mobile_number: string; account_name: string }
+}
+
 export default function AdminBids() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -87,7 +97,7 @@ export default function AdminBids() {
                   <div>
                     <p style={{ fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>{bid.products?.title}</p>
                     <p style={{ fontSize: '13px', color: '#888' }}>
-                      Bid: ${bid.amount} · Ref: {bid.payment_reference}
+                      Bid: ${bid.amount} · From: {bid.sender_number} · {bid.sent_at}
                     </p>
                   </div>
                   <span style={{
@@ -135,4 +145,4 @@ export default function AdminBids() {
       </main>
     </>
   )
-        }
+}
