@@ -19,6 +19,13 @@ export default function MyProducts() {
     return { days, minPrice: parseFloat(minPrice.toFixed(2)) }
   }
 
+  const fetchProducts = async (userId: string) => {
+    const { data } = await supabase
+      .from('products').select('*').eq('owner_id', userId)
+      .order('held_since', { ascending: false })
+    setProducts(data || [])
+  }
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -27,10 +34,7 @@ export default function MyProducts() {
       const { data: profile } = await supabase
         .from('profiles').select('is_admin').eq('id', user.id).single()
       setIsAdmin(profile?.is_admin || false)
-      const { data } = await supabase
-        .from('products').select('*').eq('owner_id', user.id)
-        .order('held_since', { ascending: false })
-      setProducts(data || [])
+      await fetchProducts(user.id)
       setLoading(false)
     }
     init()
@@ -45,21 +49,35 @@ export default function MyProducts() {
     }
     const commission = price * 0.10
     const payout = price - commission
-    await supabase.from('products').update({
+    const { error } = await supabase.from('products').update({
       resale_price: price,
       status: 'resale',
       min_bid: price
-    }).eq('id', product.id)
+    }).eq('id', product.id).eq('owner_id', user.id)
+    
+    if (error) {
+      setMessages({ ...messages, [product.id]: `❌ Error: ${error.message}` })
+      return
+    }
+    
     setMessages({ ...messages, [product.id]: `✅ Listed for $${price}! After 10% commission you'll receive $${payout.toFixed(2)}` })
-    const { data } = await supabase
-      .from('products').select('*').eq('owner_id', user.id)
-    setProducts(data || [])
+    setResalePrices({ ...resalePrices, [product.id]: '' })
+    await fetchProducts(user.id)
   }
 
   const unlist = async (product: any) => {
-    await supabase.from('products').update({ status: 'sold', min_bid: product.purchase_price }).eq('id', product.id)
-    const { data } = await supabase.from('products').select('*').eq('owner_id', user.id)
-    setProducts(data || [])
+    const { error } = await supabase.from('products').update({ 
+      status: 'owned', 
+      min_bid: null,
+      resale_price: null 
+    }).eq('id', product.id).eq('owner_id', user.id)
+    
+    if (error) {
+      setMessages({ ...messages, [product.id]: `❌ Error: ${error.message}` })
+      return
+    }
+    
+    await fetchProducts(user.id)
     setMessages({ ...messages, [product.id]: 'Product unlisted.' })
   }
 
@@ -94,7 +112,7 @@ export default function MyProducts() {
               const commission = resalePrice * 0.10
               const payout = resalePrice - commission
               const profit = payout - p.purchase_price
-              const isListed = p.status === 'active'
+              const isListed = p.status === 'resale'
 
               return (
                 <div key={p.id} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '12px', overflow: 'hidden' }}>
@@ -184,4 +202,4 @@ export default function MyProducts() {
       </main>
     </>
   )
-    }
+}
