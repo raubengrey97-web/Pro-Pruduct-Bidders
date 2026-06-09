@@ -49,7 +49,7 @@ export default function AdminProducts() {
       original_price: parseFloat(form.original_price),
       min_bid: parseFloat(form.min_bid),
       days_in_system: parseInt(form.days_in_system),
-      status: 'active'
+      status: 'auction' // new products start in auction pool
     })
     if (error) {
       setMessage('Error: ' + error.message)
@@ -70,14 +70,34 @@ export default function AdminProducts() {
     await supabase.from('products')
       .update({ status: 'auction' })
       .eq('id', id)
+      .is('owner_id', null) // safety: only activate if no owner
     await fetchProducts()
   }
 
   const deactivateProduct = async (id: string) => {
     await supabase.from('products')
-      .update({ status: 'active' })
+      .update({ status: 'inactive' })
       .eq('id', id)
     await fetchProducts()
+  }
+
+  // Use this when approving a winning bid
+  const approveBid = async (productId: string, buyerId: string, winningAmount: number) => {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        owner_id: buyerId,
+        purchase_price: winningAmount,
+        status: 'owned'
+      })
+      .eq('id', productId)
+    
+    if (error) {
+      alert('Failed to transfer: ' + error.message)
+    } else {
+      alert('Product transferred to buyer')
+      await fetchProducts()
+    }
   }
 
   if (loading) return <p style={{ padding: '40px', textAlign: 'center' }}>Loading...</p>
@@ -161,8 +181,8 @@ export default function AdminProducts() {
                 </div>
                 <span style={{
                   padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
-                  background: p.status === 'active' ? '#f0fff4' : '#fff5f5',
-                  color: p.status === 'active' ? '#276749' : '#e53e3e'
+                  background: p.status === 'auction' ? '#f0fff4' : p.status === 'owned' ? '#e0e7ff' : '#fff5f5',
+                  color: p.status === 'auction' ? '#276749' : p.status === 'owned' ? '#4338ca' : '#e53e3e'
                 }}>{p.status}</span>
                 
                 {p.status === 'auction' && !p.owner_id && (
@@ -200,4 +220,4 @@ export default function AdminProducts() {
       </main>
     </>
   )
-       }
+}
