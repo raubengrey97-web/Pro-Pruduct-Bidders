@@ -28,7 +28,6 @@ export default function Products() {
         .from('products')
         .select('*')
         .or('status.eq.auction,status.eq.resale')
-        .is('owner_id', null)
         .order('created_at', { ascending: false })
       setProducts(data || [])
       setLoading(false)
