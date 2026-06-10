@@ -38,7 +38,7 @@ export default function Products() {
   const placeBid = (product: any) => {
     const amount = parseFloat(bidAmounts[product.id] || '0')
     if (!amount || amount < product.min_bid) {
-      setMessages({ ...messages, [product.id]: `Minimum bid is $${product.min_bid}` })
+      setMessages({ ...messages, [product.id]: `Minimum bid is UGX ${product.min_bid}` })
       return
     }
     // Show payment instructions FIRST before submitting
@@ -80,7 +80,7 @@ export default function Products() {
           await supabase.from('notifications').insert({
             user_id: admin.id,
             title: 'New Bid Submitted',
-            message: `A bid of $${amount} was placed on ${product.title}. Phone: ${senderNumber}, Time: ${sentAt}`,
+            message: `A bid of UGX ${amount} was placed on ${product.title}. Phone: ${senderNumber}, Time: ${sentAt}`,
             type: 'payment'
           })
         }
@@ -90,7 +90,7 @@ export default function Products() {
       await supabase.from('notifications').insert({
         user_id: user.id,
         title: 'Bid Submitted Successfully',
-        message: `Your bid of $${amount} on ${product.title} is pending admin verification.`,
+        message: `Your bid of UGX ${amount} on ${product.title} is pending admin verification.`,
         type: 'info'
       })
 
@@ -136,11 +136,11 @@ export default function Products() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <div>
                       <p style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>Original Price</p>
-                      <p style={{ fontSize: '15px', fontWeight: 600, color: '#111' }}>${p.original_price}</p>
+                      <p style={{ fontSize: '15px', fontWeight: 600, color: '#111' }}>UGX {p.original_price}</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>Min Bid</p>
-                      <p style={{ fontSize: '15px', fontWeight: 600, color: '#111' }}>${p.min_bid}</p>
+                      <p style={{ fontSize: '15px', fontWeight: 600, color: '#111' }}>UGX {p.min_bid}</p>
                     </div>
                   </div>
                   <p style={{ fontSize: '11px', color: '#888', marginBottom: '12px' }}>
@@ -162,7 +162,7 @@ export default function Products() {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="number"
-                        placeholder={`Min $${p.min_bid}`}
+                        placeholder={`Min UGX ${p.min_bid}`}
                         value={bidAmounts[p.id] || ''}
                         onChange={e => setBidAmounts({ ...bidAmounts, [p.id]: e.target.value })}
                         style={{ flex: 1, padding: '8px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' }}
@@ -178,7 +178,7 @@ export default function Products() {
                   {showPayment[p.id] && (
                     <div style={{ marginTop: '8px', background: '#fffbeb', border: '1px solid #f6d860', borderRadius: '10px', padding: '14px' }}>
                       <p style={{ fontWeight: 700, fontSize: '13px', color: '#92400e', marginBottom: '10px' }}>
-                        💳 Pay ${bidAmounts[p.id]} to confirm your bid
+                        💳 Pay UGX {bidAmounts[p.id]} to confirm your bid
                       </p>
                       <div style={{ fontSize: '13px', color: '#444', marginBottom: '12px', lineHeight: 1.8 }}>
                         <p><strong>Airtel Money:</strong> 0707021395 — Richard Njagala</p>
