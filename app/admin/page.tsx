@@ -76,7 +76,7 @@ export default function Admin() {
     await supabase.from('notifications').insert({
       user_id: bid.user_id,
       title: '🎉 Bid Approved!',
-      message: `Your bid of $${bid.amount} on ${bid.products?.title} was approved! The product is now yours.`,
+      message: `Your bid of UGX ${bid.amount} on ${bid.products?.title} was approved! The product is now yours.`,
       type: 'success'
     })
 
@@ -91,7 +91,7 @@ export default function Admin() {
       await supabase.from('notifications').insert({
         user_id: rejectedBid.user_id,
         title: 'Bid Rejected',
-        message: `Your bid of $${rejectedBid.amount} on ${rejectedBid.products?.title} was rejected. Payment not verified.`,
+        message: `Your bid of UGX ${rejectedBid.amount} on ${rejectedBid.products?.title} was rejected. Payment not verified.`,
         type: 'error'
       })
     }
@@ -108,7 +108,7 @@ export default function Admin() {
     await supabase.from('notifications').insert({
       user_id: bid.user_id,
       title: '💸 Payout Sent!',
-      message: `Your payout of $${(bid.amount * 0.90).toFixed(2)} has been sent to your mobile money account.`,
+      message: `Your payout of UGX ${(bid.amount * 0.90).toFixed(2)} has been sent to your mobile money account.`,
       type: 'payout'
     })
 
@@ -149,9 +149,9 @@ export default function Admin() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '32px' }}>
           {[
-            { label: 'Total Earnings', value: `$${earnings.total.toFixed(2)}`, color: '#276749' },
-            { label: 'This Month', value: `$${earnings.thisMonth.toFixed(2)}`, color: '#2b6cb0' },
-            { label: 'Pending Payouts', value: `$${earnings.pending.toFixed(2)}`, color: '#c05621' },
+            { label: 'Total Earnings', value: `UGX ${earnings.total.toFixed(2)}`, color: '#276749' },
+            { label: 'This Month', value: `UGX ${earnings.thisMonth.toFixed(2)}`, color: '#2b6cb0' },
+            { label: 'Pending Payouts', value: `UGX ${earnings.pending.toFixed(2)}`, color: '#c05621' },
           ].map(card => (
             <div key={card.label} style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
               <p style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>{card.label}</p>
@@ -185,7 +185,7 @@ export default function Admin() {
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{bid.products?.title || 'Product'}</p>
                       <p style={{ fontSize: '13px', color: '#888' }}>
-                        Bid: <strong>${bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>${commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>${payout}</strong>
+                        Bid: <strong>UGX {bid.amount}</strong> · Your 10%: <strong style={{ color: '#276749' }}>UGX {commission}</strong> · Pay seller: <strong style={{ color: '#c05621' }}>UGX {payout}</strong>
                       </p>
                       <p style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{new Date(bid.created_at).toLocaleString()}</p>
                       {bid.payment_ref && (
@@ -199,7 +199,7 @@ export default function Admin() {
                             <p style={{ fontSize: '12px', color: '#276749' }}>✅ Payout sent on {new Date(bid.payout_sent_at).toLocaleDateString()}</p>
                           ) : (
                             <>
-                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#c05621', marginBottom: '6px' }}>⚠️ Send ${payout} to seller:</p>
+                              <p style={{ fontSize: '12px', fontWeight: 600, color: '#c05621', marginBottom: '6px' }}>⚠️ Send UGX {payout} to seller:</p>
                               {seller?.phone_number ? (
                                 <div style={{ fontSize: '13px', color: '#444', lineHeight: 1.8 }}>
                                   <p>📱 <strong>{seller.phone_provider} Money:</strong> {seller.phone_number}</p>
@@ -250,10 +250,10 @@ export default function Admin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {allProducts.length === 0 && <p style={{ color: '#888' }}>No products yet.</p>}
             {allProducts.map((p: any) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #ececec', borderRadius: '10px', padding: '16px' }}>
                 <div>
                   <p style={{ fontWeight: 600, color: '#111', marginBottom: '4px' }}>{p.title}</p>
-                  <p style={{ fontSize: '13px', color: '#888' }}>Original: ${p.original_price} · Min bid: ${p.min_bid}</p>
+                  <p style={{ fontSize: '13px', color: '#888' }}>Original: UGX {p.original_price} · Min bid: UGX {p.min_bid}</p>
                 </div>
                 <span style={{
                   padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
