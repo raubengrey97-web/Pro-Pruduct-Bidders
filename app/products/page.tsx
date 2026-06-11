@@ -27,7 +27,7 @@ export default function Products() {
       const { data } = await supabase
         .from('products')
         .select('*')
-        .or('status.eq.auction,status.eq.resale')
+        .or('status.eq.active,status.eq.auction,status.eq.resale')
         .order('created_at', { ascending: false })
       setProducts(data || [])
       setLoading(false)
@@ -41,7 +41,6 @@ export default function Products() {
       setMessages({ ...messages, [product.id]: `Minimum bid is UGX ${product.min_bid}` })
       return
     }
-    // Show payment instructions FIRST before submitting
     setShowPayment({ ...showPayment, [product.id]: true })
     setMessages({ ...messages, [product.id]: '' })
   }
@@ -50,7 +49,7 @@ export default function Products() {
     const amount = parseFloat(bidAmounts[product.id] || '0')
     const senderNumber = senderNumbers[product.id]?.trim()
     const sentAt = sentAts[product.id]?.trim()
-    
+
     if (!senderNumber) {
       setMessages({ ...messages, [product.id]: 'Please enter your phone number.' })
       return
@@ -59,7 +58,7 @@ export default function Products() {
       setMessages({ ...messages, [product.id]: 'Please enter the time sent.' })
       return
     }
-    
+
     const { error } = await supabase.from('bids').insert({
       product_id: product.id,
       user_id: user.id,
@@ -71,7 +70,6 @@ export default function Products() {
     if (error) {
       setMessages({ ...messages, [product.id]: 'Error: ' + error.message })
     } else {
-      // After successful bid insert, send notification to admin
       const { data: adminProfiles } = await supabase
         .from('profiles').select('id').eq('is_admin', true)
 
@@ -86,7 +84,6 @@ export default function Products() {
         }
       }
 
-      // Also notify the user
       await supabase.from('notifications').insert({
         user_id: user.id,
         title: 'Bid Submitted Successfully',
@@ -157,7 +154,6 @@ export default function Products() {
                     </p>
                   )}
 
-                  {/* Step 1: Bid input */}
                   {!showPayment[p.id] && !messages[p.id]?.startsWith('✅') && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
@@ -174,7 +170,6 @@ export default function Products() {
                     </div>
                   )}
 
-                  {/* Step 2: Payment instructions */}
                   {showPayment[p.id] && (
                     <div style={{ marginTop: '8px', background: '#fffbeb', border: '1px solid #f6d860', borderRadius: '10px', padding: '14px' }}>
                       <p style={{ fontWeight: 700, fontSize: '13px', color: '#92400e', marginBottom: '10px' }}>
@@ -195,7 +190,6 @@ export default function Products() {
                         placeholder="Phone number you sent from: 0701234567"
                         value={senderNumbers[p.id] || ''}
                         onChange={e => setSenderNumbers({ ...senderNumbers, [p.id]: e.target.value })}
-                        required
                         style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', marginBottom: '8px' }}
                       />
                       <input
@@ -203,7 +197,6 @@ export default function Products() {
                         placeholder="Time sent: e.g. 2:30 PM"
                         value={sentAts[p.id] || ''}
                         onChange={e => setSentAts({ ...sentAts, [p.id]: e.target.value })}
-                        required
                         style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', marginBottom: '8px' }}
                       />
                       <button onClick={() => submitPaymentRef(p)}
@@ -224,4 +217,4 @@ export default function Products() {
       </main>
     </>
   )
-}
+    }
