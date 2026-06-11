@@ -18,7 +18,7 @@ export default function Products() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUser(user)
       const { data: profile } = await supabase
@@ -217,4 +217,4 @@ export default function Products() {
       </main>
     </>
   )
-  }
+    }
