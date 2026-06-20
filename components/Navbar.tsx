@@ -55,7 +55,6 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
 
   return (
     <>
-      {/* Top bar - just logo + avatar */}
       <nav style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '14px 16px', borderBottom: '1px solid #f0f0f0', background: '#fff',
@@ -124,7 +123,6 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         </div>
       </nav>
 
-      {/* Bottom tab bar */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         display: 'flex', justifyContent: 'space-around', alignItems: 'center',
@@ -156,8 +154,20 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         })}
       </div>
 
-      {/* Spacer so bottom bar doesn't cover content */}
+      {!isAdmin && (
+        <Link href="/support" style={{
+          position: 'fixed', bottom: '76px', right: '16px',
+          width: '52px', height: '52px', borderRadius: '50%',
+          background: '#111', color: '#fff', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', fontSize: '22px',
+          textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+          zIndex: 55
+        }}>
+          💬
+        </Link>
+      )}
+
       <div style={{ height: '64px' }} />
     </>
   )
-                }
+      }
