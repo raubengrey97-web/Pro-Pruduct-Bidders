@@ -40,7 +40,10 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         <Link href="/my-products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>My Products</Link>
         <Link href="/user" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Dashboard</Link>
         {!isAdmin && (
-          <Link href="/profile" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Profile</Link>
+          <>
+            <Link href="/profile" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Profile</Link>
+            <Link href="/support" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Support</Link>
+          </>
         )}
         <Link href="/notifications" style={{ fontSize: '13px', color: '#555', textDecoration: 'none', position: 'relative' }}>
           🔔 {unread > 0 && (
@@ -54,6 +57,7 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
           <>
             <Link href="/admin" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Admin</Link>
             <Link href="/admin/products" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Manage</Link>
+            <Link href="/admin/messages" style={{ fontSize: '13px', color: '#555', textDecoration: 'none' }}>Messages</Link>
           </>
         )}
         <button onClick={handleLogout}
