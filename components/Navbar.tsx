@@ -10,7 +10,6 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
   const [unread, setUnread] = useState(0)
   const [userEmail, setUserEmail] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,61 +43,28 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
 
   const initial = userEmail ? userEmail[0].toUpperCase() : '?'
 
-  const navLinks = [
-    { href: '/products', label: 'Auctions' },
-    { href: '/my-products', label: 'My Products' },
-    { href: '/user', label: 'Dashboard' },
+  const tabs = [
+    { href: '/user', icon: '🏠', label: 'Home' },
+    { href: '/products', icon: '🔨', label: 'Auctions' },
+    { href: '/my-products', icon: '📦', label: 'My Products' },
+    { href: '/notifications', icon: '🔔', label: 'Alerts', badge: unread },
+    isAdmin
+      ? { href: '/admin', icon: '🛡️', label: 'Admin' }
+      : { href: '/profile', icon: '👤', label: 'Profile' },
   ]
-  const adminLinks = [
-    { href: '/admin', label: 'Admin' },
-    { href: '/admin/products', label: 'Manage' },
-    { href: '/admin/messages', label: 'Messages' },
-  ]
-
-  const linkStyle = (href: string) => ({
-    fontSize: '13px',
-    color: pathname === href ? '#111' : '#777',
-    fontWeight: pathname === href ? 700 : 400,
-    textDecoration: 'none',
-    borderBottom: pathname === href ? '2px solid #111' : '2px solid transparent',
-    paddingBottom: '2px',
-    transition: 'all 0.2s'
-  })
 
   return (
-    <nav style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '14px 16px', borderBottom: '1px solid #f0f0f0', background: '#fff',
-      position: 'sticky', top: 0, zIndex: 50
-    }}>
-      <Link href="/" style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: 700, color: '#111', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-        Pro Product Bidders
-      </Link>
-
-      {/* Desktop links */}
-      <div className="navbar-desktop-links" style={{ display: 'none', gap: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
-        {navLinks.map(link => (
-          <Link key={link.href} href={link.href} style={linkStyle(link.href)}>{link.label}</Link>
-        ))}
-        {isAdmin && adminLinks.map(link => (
-          <Link key={link.href} href={link.href} style={linkStyle(link.href)}>{link.label}</Link>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* Notification bell */}
-        <Link href="/notifications" style={{ position: 'relative', textDecoration: 'none', fontSize: '18px' }}>
-          🔔
-          {unread > 0 && (
-            <span style={{
-              position: 'absolute', top: '-4px', right: '-6px',
-              background: '#e53e3e', color: '#fff', fontSize: '10px',
-              padding: '1px 5px', borderRadius: '10px', fontWeight: 600
-            }}>{unread}</span>
-          )}
+    <>
+      {/* Top bar - just logo + avatar */}
+      <nav style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '14px 16px', borderBottom: '1px solid #f0f0f0', background: '#fff',
+        position: 'sticky', top: 0, zIndex: 50
+      }}>
+        <Link href="/" style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: 700, color: '#111', textDecoration: 'none' }}>
+          Pro Product Bidders
         </Link>
 
-        {/* Avatar dropdown */}
         <div ref={dropdownRef} style={{ position: 'relative' }}>
           <button onClick={() => setDropdownOpen(!dropdownOpen)}
             style={{
@@ -137,6 +103,18 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
                   </Link>
                 </>
               )}
+              {isAdmin && (
+                <>
+                  <Link href="/admin/products" onClick={() => setDropdownOpen(false)}
+                    style={{ display: 'block', padding: '10px 16px', fontSize: '13px', color: '#333', textDecoration: 'none' }}>
+                    ⚙️ Manage Products
+                  </Link>
+                  <Link href="/admin/messages" onClick={() => setDropdownOpen(false)}
+                    style={{ display: 'block', padding: '10px 16px', fontSize: '13px', color: '#333', textDecoration: 'none' }}>
+                    💬 Messages
+                  </Link>
+                </>
+              )}
               <button onClick={handleLogout}
                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '13px', color: '#e53e3e', background: 'none', border: 'none', borderTop: '1px solid #f0f0f0', cursor: 'pointer' }}>
                 🚪 Logout
@@ -144,54 +122,42 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
             </div>
           )}
         </div>
+      </nav>
 
-        {/* Hamburger - mobile only */}
-        <button className="navbar-hamburger" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{ display: 'flex', background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', padding: '4px' }}>
-          {mobileMenuOpen ? '✕' : '☰'}
-        </button>
+      {/* Bottom tab bar */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+        background: '#fff', borderTop: '1px solid #ececec', padding: '8px 4px',
+        zIndex: 50, paddingBottom: 'max(8px, env(safe-area-inset-bottom))'
+      }}>
+        {tabs.map(tab => {
+          const active = pathname === tab.href
+          return (
+            <Link key={tab.href} href={tab.href} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              textDecoration: 'none', flex: 1, position: 'relative', padding: '4px'
+            }}>
+              <span style={{ fontSize: '20px', filter: active ? 'none' : 'grayscale(0.5) opacity(0.6)' }}>
+                {tab.icon}
+                {('badge' in tab) && tab.badge! > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '-2px', right: '18%',
+                    background: '#e53e3e', color: '#fff', fontSize: '9px',
+                    padding: '1px 4px', borderRadius: '10px', fontWeight: 700
+                  }}>{tab.badge}</span>
+                )}
+              </span>
+              <span style={{ fontSize: '10px', color: active ? '#111' : '#999', fontWeight: active ? 700 : 400, marginTop: '2px' }}>
+                {tab.label}
+              </span>
+            </Link>
+          )
+        })}
       </div>
 
-      {/* Mobile dropdown menu */}
-      {mobileMenuOpen && (
-        <div style={{
-          position: 'absolute', top: '60px', left: 0, right: 0, background: '#fff',
-          borderBottom: '1px solid #ececec', boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-          display: 'flex', flexDirection: 'column', padding: '8px 0', zIndex: 50
-        }}>
-          {navLinks.map(link => (
-            <Link key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}
-              style={{
-                padding: '12px 20px', fontSize: '14px',
-                color: pathname === link.href ? '#111' : '#555',
-                fontWeight: pathname === link.href ? 700 : 400,
-                textDecoration: 'none',
-                background: pathname === link.href ? '#fafafa' : 'transparent'
-              }}>
-              {link.label}
-            </Link>
-          ))}
-          {isAdmin && adminLinks.map(link => (
-            <Link key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}
-              style={{
-                padding: '12px 20px', fontSize: '14px',
-                color: pathname === link.href ? '#111' : '#555',
-                fontWeight: pathname === link.href ? 700 : 400,
-                textDecoration: 'none',
-                background: pathname === link.href ? '#fafafa' : 'transparent'
-              }}>
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <style>{`
-        @media (min-width: 768px) {
-          .navbar-desktop-links { display: flex !important; }
-          .navbar-hamburger { display: none !important; }
-        }
-      `}</style>
-    </nav>
+      {/* Spacer so bottom bar doesn't cover content */}
+      <div style={{ height: '64px' }} />
+    </>
   )
-      }
+                }
