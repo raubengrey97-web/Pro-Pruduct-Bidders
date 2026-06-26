@@ -171,7 +171,7 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         </Link>
       )}
 
-      <div style={{ height: '64px' }} />
+      <div style={{ height: 'calc(76px + env(safe-area-inset-bottom))' }} />
     </>
   )
                       }
