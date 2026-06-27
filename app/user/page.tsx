@@ -41,10 +41,18 @@ export default function UserDashboard() {
 
   const listForResale = async (product: any) => {
     const price = parseFloat(resalePrices[product.id] || '0')
-    if (!price || price <= product.purchase_price) {
-      setResaleMessages({ ...resaleMessages, [product.id]: `Resale price must be higher than your purchase price ($${product.purchase_price})` })
+    const minPrice = product.purchase_price
+    const maxPrice = product.purchase_price + 2
+
+    if (!price || price < minPrice) {
+      setResaleMessages({ ...resaleMessages, [product.id]: `❌ Resale price must be at least $${minPrice}` })
       return
     }
+    if (price > maxPrice) {
+      setResaleMessages({ ...resaleMessages, [product.id]: `❌ Maximum resale price is $${maxPrice} (only $2 above purchase price)` })
+      return
+    }
+
     const commission = price * 0.10
     const yourPayout = price - commission
 
@@ -110,6 +118,10 @@ export default function UserDashboard() {
                 const resalePrice = parseFloat(resalePrices[p.id] || '0')
                 const commission = resalePrice * 0.10
                 const payout = resalePrice - commission
+                const maxResale = p.purchase_price + 2
+                const isOverMax = resalePrice > maxResale
+                const isUnderMin = resalePrice > 0 && resalePrice < p.purchase_price
+
                 return (
                   <div key={p.id} style={{
                     background: '#fff', border: '1px solid #BFDBFE',
@@ -130,29 +142,72 @@ export default function UserDashboard() {
 
                     {p.status !== 'resale' && p.status !== 'active' && (
                       <div style={{ marginTop: '12px' }}>
+                        {/* Price range info */}
+                        <div style={{
+                          background: '#EFF6FF', border: '1px solid #BFDBFE',
+                          borderRadius: '8px', padding: '10px', marginBottom: '10px'
+                        }}>
+                          <p style={{ fontSize: '12px', color: '#1E3A8A', fontWeight: 600, marginBottom: '2px' }}>
+                            💰 Resale price range:
+                          </p>
+                          <p style={{ fontSize: '12px', color: '#6B7280' }}>
+                            Min: <strong style={{ color: '#1E3A8A' }}>${p.purchase_price}</strong> ·
+                            Max: <strong style={{ color: '#F59E0B' }}>${maxResale}</strong>
+                            <span style={{ color: '#6B7280' }}> (only $2 above purchase)</span>
+                          </p>
+                        </div>
+
                         <p style={{ fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
                           List for resale (10% commission deducted):
                         </p>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-                          <input type="number" placeholder="Your resale price"
+                          <input
+                            type="number"
+                            placeholder={`$${p.purchase_price} – $${maxResale}`}
                             value={resalePrices[p.id] || ''}
-                            onChange={e => setResalePrices({ ...resalePrices, [p.id]: e.target.value })}
-                            style={{ flex: 1, padding: '8px 10px', border: '1px solid #BFDBFE', borderRadius: '6px', fontSize: '13px' }} />
+                            min={p.purchase_price}
+                            max={maxResale}
+                            onChange={e => {
+                              setResalePrices({ ...resalePrices, [p.id]: e.target.value })
+                              setResaleMessages({ ...resaleMessages, [p.id]: '' })
+                            }}
+                            style={{
+                              flex: 1, padding: '8px 10px', fontSize: '13px',
+                              border: `1px solid ${isOverMax || isUnderMin ? '#e53e3e' : '#BFDBFE'}`,
+                              borderRadius: '6px'
+                            }}
+                          />
                           <button onClick={() => listForResale(p)}
                             style={{
-                              background: '#1E3A8A', color: '#fff', padding: '8px 14px',
-                              borderRadius: '6px', border: 'none', fontSize: '13px', cursor: 'pointer',
+                              background: isOverMax || isUnderMin ? '#6B7280' : '#1E3A8A',
+                              color: '#fff', padding: '8px 14px',
+                              borderRadius: '6px', border: 'none', fontSize: '13px',
+                              cursor: isOverMax || isUnderMin ? 'not-allowed' : 'pointer',
                               fontWeight: 500
                             }}>
                             List
                           </button>
                         </div>
-                        {resalePrice > 0 && (
+
+                        {/* Live validation feedback */}
+                        {isOverMax && (
+                          <p style={{ fontSize: '12px', color: '#e53e3e', marginBottom: '4px' }}>
+                            ❌ Max allowed is ${maxResale} (only $2 above purchase price)
+                          </p>
+                        )}
+                        {isUnderMin && (
+                          <p style={{ fontSize: '12px', color: '#e53e3e', marginBottom: '4px' }}>
+                            ❌ Price must be at least ${p.purchase_price}
+                          </p>
+                        )}
+
+                        {resalePrice > 0 && !isOverMax && !isUnderMin && (
                           <p style={{ fontSize: '12px', color: '#1E3A8A' }}>
                             You'll receive: <strong style={{ color: '#F59E0B' }}>${payout.toFixed(2)}</strong>
                             <span style={{ color: '#6B7280' }}> (after 10% = ${commission.toFixed(2)} commission)</span>
                           </p>
                         )}
+
                         {resaleMessages[p.id] && (
                           <p style={{
                             fontSize: '12px', marginTop: '6px', padding: '8px', borderRadius: '6px',
