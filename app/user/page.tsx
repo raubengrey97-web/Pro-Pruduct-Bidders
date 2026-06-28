@@ -81,7 +81,7 @@ export default function UserDashboard() {
   return (
     <>
       <Navbar isAdmin={isAdmin} />
-      <main style={{ padding: '24px 16px', maxWidth: '800px', margin: '0 auto' }}>
+      <main style={{ padding: '24px 16px 120px 16px', maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#1E3A8A', marginBottom: '4px' }}>
           My Dashboard
         </h1>
@@ -142,7 +142,6 @@ export default function UserDashboard() {
 
                     {p.status !== 'resale' && p.status !== 'active' && (
                       <div style={{ marginTop: '12px' }}>
-                        {/* Price range info */}
                         <div style={{
                           background: '#EFF6FF', border: '1px solid #BFDBFE',
                           borderRadius: '8px', padding: '10px', marginBottom: '10px'
@@ -189,7 +188,6 @@ export default function UserDashboard() {
                           </button>
                         </div>
 
-                        {/* Live validation feedback */}
                         {isOverMax && (
                           <p style={{ fontSize: '12px', color: '#e53e3e', marginBottom: '4px' }}>
                             ❌ Max allowed is ${maxResale} (only $2 above purchase price)
@@ -285,4 +283,4 @@ export default function UserDashboard() {
       </main>
     </>
   )
-    }
+                        }
