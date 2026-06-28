@@ -56,34 +56,50 @@ export default function Profile() {
     setSaving(false)
   }
 
-  if (loading) return <p style={{ padding: '40px', textAlign: 'center' }}>Loading...</p>
+  if (loading) return (
+    <p style={{ padding: '40px', textAlign: 'center', color: '#1E3A8A', fontWeight: 600 }}>
+      Loading...
+    </p>
+  )
 
   const inputStyle = {
-    width: '100%', padding: '10px 12px', border: '1px solid #ddd',
-    borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' as const
+    width: '100%', padding: '10px 12px',
+    border: '1px solid #BFDBFE',
+    borderRadius: '6px', fontSize: '14px',
+    boxSizing: 'border-box' as const,
+    color: '#1E3A8A'
   }
-  const labelStyle = { fontSize: '13px', fontWeight: 500, color: '#444', display: 'block', marginBottom: '6px' }
+  const labelStyle = {
+    fontSize: '13px', fontWeight: 500,
+    color: '#1E3A8A', display: 'block', marginBottom: '6px'
+  }
 
   return (
     <>
       <Navbar isAdmin={isAdmin} />
-      <main style={{ padding: '24px 16px', maxWidth: '500px', margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#111', marginBottom: '4px' }}>
+      <main style={{ padding: '24px 16px 120px 16px', maxWidth: '500px', margin: '0 auto' }}>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#1E3A8A', marginBottom: '4px' }}>
           My Profile
         </h1>
-        <p style={{ color: '#888', fontSize: '14px', marginBottom: '32px' }}>
+        <p style={{ color: '#6B7280', fontSize: '14px', marginBottom: '32px' }}>
           Add your mobile money details so the admin can send you payouts when you sell a product.
         </p>
 
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: '12px', padding: '24px' }}>
-          <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>
-            📧 Account: <strong>{user?.email}</strong>
+        <div style={{
+          background: '#fff', border: '1px solid #BFDBFE',
+          borderRadius: '12px', padding: '24px',
+          boxShadow: '0 1px 4px rgba(30,58,138,0.06)'
+        }}>
+          <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '20px' }}>
+            📧 Account: <strong style={{ color: '#1E3A8A' }}>{user?.email}</strong>
           </p>
 
           {message && (
-            <p style={{ marginBottom: '16px', padding: '10px', borderRadius: '6px', fontSize: '13px',
-              background: message.startsWith('✅') ? '#f0fff4' : '#fff5f5',
-              color: message.startsWith('✅') ? '#276749' : '#e53e3e' }}>
+            <p style={{
+              marginBottom: '16px', padding: '10px', borderRadius: '6px', fontSize: '13px',
+              background: message.startsWith('✅') ? '#D1FAE5' : '#fff5f5',
+              color: message.startsWith('✅') ? '#065F46' : '#e53e3e'
+            }}>
               {message}
             </p>
           )}
@@ -114,26 +130,44 @@ export default function Profile() {
               style={inputStyle} />
           </div>
 
-          <div style={{ background: '#fffbeb', border: '1px solid #f6d860', borderRadius: '8px', padding: '12px', marginBottom: '20px' }}>
-            <p style={{ fontSize: '12px', color: '#92400e' }}>
+          <div style={{
+            background: '#FEF3C7', border: '1px solid #F59E0B',
+            borderRadius: '8px', padding: '12px', marginBottom: '20px'
+          }}>
+            <p style={{ fontSize: '12px', color: '#92400E' }}>
               ⚠️ Make sure these details are correct. The admin will use them to send your payout when your product is sold.
             </p>
           </div>
 
           <button onClick={handleSave} disabled={saving}
-            style={{ width: '100%', background: '#111', color: '#fff', padding: '12px', borderRadius: '6px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+            style={{
+              width: '100%', background: '#1E3A8A', color: '#fff',
+              padding: '12px', borderRadius: '6px', border: 'none',
+              fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(30,58,138,0.3)'
+            }}>
             {saving ? 'Saving...' : 'Save Payment Details'}
           </button>
         </div>
 
         {form.phone_number && form.phone_name && (
-          <div style={{ marginTop: '16px', background: '#f0fff4', border: '1px solid #9ae6b4', borderRadius: '10px', padding: '16px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#276749', marginBottom: '8px' }}>✅ Your payout details:</p>
-            <p style={{ fontSize: '13px', color: '#444' }}><strong>{form.phone_provider} Money:</strong> {form.phone_number}</p>
-            <p style={{ fontSize: '13px', color: '#444' }}><strong>Name:</strong> {form.phone_name}</p>
+          <div style={{
+            marginTop: '16px', background: '#EFF6FF',
+            border: '1px solid #BFDBFE', borderRadius: '10px', padding: '16px'
+          }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#1E3A8A', marginBottom: '8px' }}>
+              ✅ Your payout details:
+            </p>
+            <p style={{ fontSize: '13px', color: '#444', marginBottom: '4px' }}>
+              <strong style={{ color: '#1E3A8A' }}>{form.phone_provider} Money:</strong>{' '}
+              <span style={{ color: '#F59E0B', fontWeight: 600 }}>{form.phone_number}</span>
+            </p>
+            <p style={{ fontSize: '13px', color: '#444' }}>
+              <strong style={{ color: '#1E3A8A' }}>Name:</strong> {form.phone_name}
+            </p>
           </div>
         )}
       </main>
     </>
   )
-        }
+                   }
