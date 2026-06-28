@@ -97,7 +97,7 @@ export default function MyProducts() {
   return (
     <>
       <Navbar isAdmin={isAdmin} />
-      <main style={{ padding: '24px 16px', maxWidth: '800px', margin: '0 auto' }}>
+      <main style={{ padding: '24px 16px 120px 16px', maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 700, color: '#1E3A8A', marginBottom: '4px' }}>
           My Products
         </h1>
@@ -154,7 +154,6 @@ export default function MyProducts() {
                       </span>
                     </div>
 
-                    {/* Value growth info */}
                     <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '12px', color: '#6B7280' }}>Days held</span>
@@ -211,12 +210,12 @@ export default function MyProducts() {
                             setMessages({ ...messages, [p.id]: '' })
                           }}
                           style={{
-                            width: '100%', padding: '10px', fontSize: '13px', boxSizing: 'border-box', marginBottom: '6px',
+                            width: '100%', padding: '10px', fontSize: '13px',
+                            boxSizing: 'border-box', marginBottom: '6px',
                             border: `1px solid ${isOverMax || isUnderMin ? '#e53e3e' : '#BFDBFE'}`,
                             borderRadius: '6px'
                           }} />
 
-                        {/* Live validation */}
                         {isOverMax && (
                           <p style={{ fontSize: '12px', color: '#e53e3e', marginBottom: '6px' }}>
                             ❌ Max allowed is ${maxPrice} (only $2 above purchase price)
